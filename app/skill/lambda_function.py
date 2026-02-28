@@ -240,6 +240,14 @@ class NextOrPreviousIntentHandler(AbstractRequestHandler):
         # type: (HandlerInput) -> Response
         logger.info("In NextOrPreviousIntentHandler")
         _ = handler_input.attributes_manager.request_attributes["_"]
+        
+        if is_intent_name("AMAZON.NextIntent")(handler_input):
+            if util.send_ma_command("next"):
+                return handler_input.response_builder.response
+        elif is_intent_name("AMAZON.PreviousIntent")(handler_input):
+            if util.send_ma_command("previous"):
+                return handler_input.response_builder.response
+
         handler_input.response_builder.speak(
             _(data.CANNOT_SKIP_MSG)).set_should_end_session(True)
         return handler_input.response_builder.response
@@ -492,7 +500,9 @@ class APLUserEventHandler(AbstractRequestHandler):
         
         # Check if we have valid metadata
         if not data.info.get('audioSources'):
-            logger.warning("No audio sources available for metadata refresh")
+            logger.info("Empty audio sources (stop signal) received from Music Assistant")
+            util.stop(None, handler_input.response_builder, supports_apl=supports_apl)
+            return handler_input.response_builder.set_should_end_session(True).response
         else:
             # Send updated APL document with new metadata
             if changed:
@@ -508,8 +518,8 @@ class APLUserEventHandler(AbstractRequestHandler):
         except Exception:
             logger.exception("Failed to schedule APL refresh")
         
-        # Explicitly keep session open to allow continued UserEvents
-        return handler_input.response_builder.set_should_end_session(False).response
+        # Explicitly end session to turn off light bar, APL will start a new one on next UserEvent.
+        return handler_input.response_builder.set_should_end_session(True).response
 
 # ###################################################################
 
@@ -533,6 +543,10 @@ class PlayCommandHandler(AbstractRequestHandler):
         logger.info("In PlayCommandHandler")
         _ = handler_input.attributes_manager.request_attributes["_"]
         request = handler_input.request_envelope.request
+        
+        # Sync with Music Assistant
+        util.send_ma_command("play")
+        
         url, _audio = _get_stream_url(request)
         if not url:
             logger.warning("No stream url available for PlayCommand; notifying user")
@@ -567,6 +581,14 @@ class NextOrPreviousCommandHandler(AbstractRequestHandler):
     def handle(self, handler_input):
         # type: (HandlerInput) -> Response
         logger.info("In NextOrPreviousCommandHandler")
+        request = handler_input.request_envelope.request
+        req_type = getattr(request, 'object_type', '')
+        
+        if req_type == "PlaybackController.NextCommandIssued":
+            util.send_ma_command("next")
+        elif req_type == "PlaybackController.PreviousCommandIssued":
+            util.send_ma_command("previous")
+            
         return handler_input.response_builder.response
 
 
@@ -585,6 +607,7 @@ class PauseCommandHandler(AbstractRequestHandler):
     def handle(self, handler_input):
         # type: (HandlerInput) -> Response
         logger.info("In PauseCommandHandler")
+        util.send_ma_command("pause")
         return util.stop(text=None,
                          response_builder=handler_input.response_builder,
                          supports_apl=supports_apl)

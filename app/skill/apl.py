@@ -30,6 +30,8 @@ def add_apl(response_builder, start_paused=False):
 
     if hostname:
         data.info["coverImageSource"] = replace_ip_in_url(data.info.get("coverImageSource", ""), hostname)
+        data.info["backgroundImageSource"] = replace_ip_in_url(data.info.get("backgroundImageSource", ""), hostname)
+        data.info["audioSources"] = replace_ip_in_url(data.info.get("audioSources", ""), hostname)
 
     # Load the APL document template
     apl_document = _load_apl_template()
@@ -47,14 +49,14 @@ def add_apl(response_builder, start_paused=False):
     # Update mainTemplate with data.info values
     main_template_item = apl_document["mainTemplate"]["items"][0]
     main_template_item.update({
-        "audioSources": data.info["audioSources"],
-        "backgroundImageSource": data.info["backgroundImageSource"],
-        "coverImageSource": data.info["coverImageSource"],
-        "headerAttributionImage": data.info["headerAttributionImage"],
-        "headerTitle": data.info["headerTitle"],
-        "headerSubtitle": data.info["headerSubtitle"],
-        "primaryText": data.info["primaryText"],
-        "secondaryText": data.info["secondaryText"]
+        "audioSources": data.info.get("audioSources", ""),
+        "backgroundImageSource": data.info.get("backgroundImageSource", ""),
+        "coverImageSource": data.info.get("coverImageSource", ""),
+        "headerAttributionImage": data.info.get("headerAttributionImage", ""),
+        "headerTitle": data.info.get("headerTitle", ""),
+        "headerSubtitle": data.info.get("headerSubtitle", ""),
+        "primaryText": data.info.get("primaryText", ""),
+        "secondaryText": data.info.get("secondaryText", "")
     })
 
     response_builder.add_directive(

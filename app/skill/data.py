@@ -49,7 +49,8 @@ info = {
             "headerTitle": "",
             "headerSubtitle": "",
             "primaryText": "",
-            "secondaryText": ""
+            "secondaryText": "",
+            "playerId": ""
 }
 
 # Track the last version we've seen to avoid unnecessary updates
@@ -139,7 +140,8 @@ def get_latest(api_hostname: Optional[str] = None,
                 'headerTitle': '',
                 'headerSubtitle': '',
                 'primaryText': title,
-                'secondaryText': secondary
+                'secondaryText': secondary,
+                'playerId': payload.get('playerId', '')
             })
             
             # Update the last seen version

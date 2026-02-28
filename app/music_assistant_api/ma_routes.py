@@ -23,9 +23,6 @@ def register_routes(bp):
         global _store, _version
         data = request.get_json(silent=True) or {}
         stream_url = data.get('streamUrl')
-        if not stream_url:
-            return jsonify({'error': 'Missing required fields'}), 400
-
         _version += 1
         _store = {
             'streamUrl': stream_url,
@@ -33,6 +30,7 @@ def register_routes(bp):
             'artist': data.get('artist'),
             'album': data.get('album'),
             'imageUrl': data.get('imageUrl'),
+            'playerId': data.get('playerId'),
             'version': _version,
             'timestamp': time.time()
         }

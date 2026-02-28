@@ -328,12 +328,16 @@ def setup_ui():
     except Exception:
         auth_url = None
 
-    # If persistent ASK credentials are present at /root/.ask, suppress the
+    # If persistent ASK credentials are present and valid, suppress the
     # browser-based authorization UI and do not expose an auth URL to the client.
     try:
-        if Path('/root/.ask').exists():
-            app.logger.info('Persistent ASK credentials found; suppressing auth UI')
-            auth_url = None
+        cfg_path = Path('/root/.ask/cli_config')
+        if cfg_path.exists():
+            import json as _json
+            cfg = _json.loads(cfg_path.read_text())
+            if cfg.get('profiles'):
+                app.logger.info('Valid ASK credentials found; suppressing auth UI')
+                auth_url = None
     except Exception:
         pass
 
@@ -371,9 +375,12 @@ def setup_ui():
     # If valid ASK CLI credentials are present, show a notice on the setup page.
     try:
         creds_html = ''
-        # The ASK CLI stores a cli_config under ~/.ask/cli_config when configured.
-        if Path('/root/.ask/cli_config').exists():
-            creds_html = '<div style="margin-top:8px;color:green;font-weight:600">Persistent ASK credentials detected — setup will use existing credentials.</div>'
+        cfg_path = Path('/root/.ask/cli_config')
+        if cfg_path.exists():
+            import json as _json
+            cfg = _json.loads(cfg_path.read_text())
+            if cfg.get('profiles'):
+                creds_html = '<div style="margin-top:8px;color:green;font-weight:600">Persistent ASK credentials detected — setup will use existing credentials.</div>'
     except Exception:
         creds_html = ''
 
@@ -451,10 +458,17 @@ def setup_start():
 
     endpoint = _normalize(endpoint)
 
-    # helper: is ASK CLI already configured (simple check)
+    # helper: is ASK CLI already configured (robust check)
     def ask_configured():
-        cfg = Path.home() / '.ask' / 'cli_config'
-        return cfg.exists()
+        cfg_path = Path.home() / '.ask' / 'cli_config'
+        if not cfg_path.exists():
+            return False
+        try:
+            import json as _json
+            cfg = _json.loads(cfg_path.read_text())
+            return bool(cfg.get('profiles'))
+        except Exception:
+            return False
 
     with _setup_lock:
         # If a setup script is already running, report it

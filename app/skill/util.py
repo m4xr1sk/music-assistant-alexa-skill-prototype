@@ -70,6 +70,40 @@ def audio_data(request):
         return
 
 
+def send_ma_command(command):
+    """Send a playback command (next, previous) to Music Assistant server.
+    
+    Uses MA_SERVER_URL and data.info['playerId'].
+    """
+    player_id = data.info.get('playerId')
+    server_url = os.environ.get('MA_SERVER_URL')
+    
+    if not player_id:
+        logging.warning("Cannot send command: No playerId available")
+        return False
+        
+    if not server_url:
+        logging.warning("Cannot send command: MA_SERVER_URL not set")
+        return False
+        
+    # MA API endpoint for player commands
+    # Format: https://MA_URL/api/players/PLAYER_ID/cmd/COMMAND
+    server_url = server_url.rstrip('/')
+    if not server_url.startswith('http'):
+        server_url = f'https://{server_url}'
+        
+    cmd_url = f"{server_url}/api/players/{player_id}/cmd/{command}"
+    
+    try:
+        logging.info("Sending command to MA: %s", cmd_url)
+        # Using a short timeout to not block Alexa response
+        requests.post(cmd_url, timeout=3)
+        return True
+    except Exception:
+        logging.exception("Failed to send command to Music Assistant")
+        return False
+
+
 def push_alexa_metadata(url):
     """Push the currently playing stream metadata to the Alexa API"""
     payload = {
@@ -82,12 +116,16 @@ def push_alexa_metadata(url):
     try:
         # Alexa API is part of the same app/container; update its module-level
         # store directly to avoid HTTP and latency.
-        from app.alexa_api import alexa_routes
+        try:
+            from alexa_api import alexa_routes
+        except ImportError:
+            from app.alexa_api import alexa_routes
         alexa_routes._store = payload
     except Exception:
         # Fallback to localhost HTTP POST if direct import fails for any reason.
         try:
-            push_endpoint = 'http://localhost:5000/alexa/push-url'
+            port = os.environ.get('PORT', '5000')
+            push_endpoint = f'http://localhost:{port}/alexa/push-url'
             user = get_env_secret('APP_USERNAME')
             pwd = get_env_secret('APP_PASSWORD')
             if user and pwd:
@@ -116,6 +154,7 @@ def play(url, offset, text, response_builder, supports_apl=False):
 
     if supports_apl:
         add_apl(response_builder)
+        response_builder.set_should_end_session(True)
     else:
         # Sanitize MA_HOSTNAME and replace IP-host in the provided stream URL.
         try:
