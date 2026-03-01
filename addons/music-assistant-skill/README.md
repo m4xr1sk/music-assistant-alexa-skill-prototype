@@ -10,7 +10,7 @@ Installation (development):
 
 Configuration options (in Supervisor add-on configuration):
 
-- `STREAM_HOSTNAME`: optional hostname for your Music Assistant instance.
+- `STREAM_HOSTNAME`: public hostname for the Music Assistant audio stream (port 8097). Required for Alexa to access media.
 - `APP_USERNAME` / `APP_PASSWORD`: credentials to authenticate to the Music Assistant web UI and API (optional).
 - `PORT`: port the service listens on inside the container (default 5000).
 - `DEBUG_PORT`: optional debug port (default 5678).
