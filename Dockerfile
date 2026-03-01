@@ -89,9 +89,9 @@ ENV AWS_DEFAULT_REGION=us-east-1
 ENV TZ=UTC
 
 # Host configuration:
-# MA_HOSTNAME: hostname for the Music Assistant stream
+# STREAM_HOSTNAME: hostname for the Music Assistant stream
 # SKILL_HOSTNAME: hostname used when creating the Alexa skill manifest and endpoints
-ENV MA_HOSTNAME=""
+ENV STREAM_HOSTNAME=""
 ENV SKILL_HOSTNAME=""
 ENV PORT=5000
 ENV LOCALE=en-US

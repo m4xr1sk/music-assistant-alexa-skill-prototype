@@ -21,12 +21,12 @@ from .apl import add_apl
 
 
 def get_ma_hostname(raise_on_http_scheme=True):
-    """Read and sanitize MA_HOSTNAME environment variable and return a https:// hostname or empty string.
+    """Read and sanitize STREAM_HOSTNAME environment variable and return a https:// hostname or empty string.
 
     If `raise_on_http_scheme` is True and the provided value starts with http://, a
     ValueError is raised so callers can surface an appropriate error to the user.
     """
-    hostname_raw = os.environ.get('MA_HOSTNAME', '')
+    hostname_raw = os.environ.get('STREAM_HOSTNAME', '')
     hostname_raw = hostname_raw.strip()
     # strip surrounding single/double quotes
     if len(hostname_raw) >= 2 and ((hostname_raw[0] == hostname_raw[-1] == '"') or (hostname_raw[0] == hostname_raw[-1] == "'")):
@@ -156,17 +156,17 @@ def play(url, offset, text, response_builder, supports_apl=False):
         add_apl(response_builder)
         response_builder.set_should_end_session(True)
     else:
-        # Sanitize MA_HOSTNAME and replace IP-host in the provided stream URL.
+        # Sanitize STREAM_HOSTNAME and replace IP-host in the provided stream URL.
         try:
             hostname = get_ma_hostname(raise_on_http_scheme=True)
         except ValueError:
             response_builder.speak(
-                "The domain uses an unsupported scheme (http). Please check your environment variable MA_HOSTNAME.").set_should_end_session(True)
+                "The domain uses an unsupported scheme (http). Please check your environment variable STREAM_HOSTNAME.").set_should_end_session(True)
             return response_builder.response
 
         if not hostname:
             response_builder.speak(
-                "You did not specify a valid hostname. Please check your environment variable MA_HOSTNAME.").set_should_end_session(True)
+                "You did not specify a valid hostname. Please check your environment variable STREAM_HOSTNAME.").set_should_end_session(True)
             return response_builder.response
 
         url = replace_ip_in_url(url, hostname)
@@ -181,13 +181,13 @@ def play(url, offset, text, response_builder, supports_apl=False):
             if resp.status_code >= 400:
                 logging.error('Audio URL returned HTTP %s: %s', resp.status_code, url)
                 response_builder.speak(
-                    "Sorry, I can't reach the audio file. Please check that your stream URL is internet accessible via HTTPS at the MA_HOSTNAME variable you provided.")
+                    "Sorry, I can't reach the audio file. Please check that your stream URL is internet accessible via HTTPS at the STREAM_HOSTNAME variable you provided.")
                 response_builder.set_should_end_session(True)
                 return response_builder.response
         except requests.RequestException:
             logging.exception('Play Function URL: %s', url)
             response_builder.speak(
-                "Sorry, I can't reach the audio file. Please check that your stream URL is internet accessible via HTTPS at the MA_HOSTNAME variable you provided.")
+                    "Sorry, I can't reach the audio file. Please check that your stream URL is internet accessible via HTTPS at the STREAM_HOSTNAME variable you provided.")
             response_builder.set_should_end_session(True)
             return response_builder.response
 
@@ -290,7 +290,7 @@ def update_apl_metadata(response_builder):
     try:
         from ask_sdk_model.interfaces.alexa.presentation.apl import ExecuteCommandsDirective
         
-        # Replace MA-hosted image sources if MA_HOSTNAME is set
+        # Replace MA-hosted image sources if STREAM_HOSTNAME is set
         try:
             hostname = get_ma_hostname(raise_on_http_scheme=False)
         except ValueError:

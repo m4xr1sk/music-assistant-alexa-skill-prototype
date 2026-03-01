@@ -21,7 +21,7 @@
     "5678/tcp": "Debug port (optional)"
   },
   "options": {
-    "MA_HOSTNAME": "",
+    "STREAM_HOSTNAME": "",
     "APP_USERNAME": "",
     "APP_PASSWORD": "",
     "PORT": 5000,
@@ -29,7 +29,7 @@
     "AWS_DEFAULT_REGION": "us-east-1"
   },
   "schema": {
-    "MA_HOSTNAME": "str",
+    "STREAM_HOSTNAME": "str",
     "APP_USERNAME": "str",
     "APP_PASSWORD": "str",
     "PORT": "int",

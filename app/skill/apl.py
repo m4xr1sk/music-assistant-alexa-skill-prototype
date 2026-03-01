@@ -22,7 +22,7 @@ def add_apl(response_builder, start_paused=False):
     # Import here to avoid circular imports
     from .util import get_ma_hostname, replace_ip_in_url
     
-    # Replace MA-hosted image sources if MA_HOSTNAME is set.
+    # Replace MA-hosted image sources if STREAM_HOSTNAME is set.
     try:
         hostname = get_ma_hostname(raise_on_http_scheme=False)
     except ValueError:

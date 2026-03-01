@@ -17,7 +17,7 @@ The easiest way to run the project is with Docker Compose. This will build and s
 
 #### Steps:
 
-1. Ensure `docker-compose.yml` is present and edit environment variables as needed (e.g., `SKILL_HOSTNAME`, `MA_HOSTNAME`, `PORT`). See the [Environment Variables](#environment-variables) section below for details on each variable.
+1. Ensure `docker-compose.yml` is present and edit environment variables as needed (e.g., `SKILL_HOSTNAME`, `STREAM_HOSTNAME`, `PORT`). See the [Environment Variables](#environment-variables) section below for details on each variable.
 2. (Optional) Create `./secrets/app_username.txt` and `./secrets/app_password.txt` to provide `APP_USERNAME` and `APP_PASSWORD` for basic authentication of the web UI and API.
 3. (Optional) To persist ASK CLI credentials across container restarts, mount a volume to `./<host directory>:/root/.ask`, `./ask_data` is used by default.
 4. Start the service:
@@ -42,7 +42,7 @@ If you want to test as an add-on locally:
 
 1. Add this repository as a custom add-on repository in Home Assistant Supervisor (Supervisor > Add-on Store > Repositories).
 2. Install the "Music Assistant Alexa Skill" add-on and open the add-on configuration.
-3. In the add-on configuration, set the options described above (`MA_HOSTNAME`, `APP_USERNAME`, `APP_PASSWORD`, `PORT`, `DEBUG_PORT`, `AWS_DEFAULT_REGION`) as needed.
+3. In the add-on configuration, set the options described above (`STREAM_HOSTNAME`, `APP_USERNAME`, `APP_PASSWORD`, `PORT`, `DEBUG_PORT`, `AWS_DEFAULT_REGION`) as needed.
 4. Start the add-on and check the add-on logs for startup and any missing dependencies or configuration issues.
 
 **Warning**: Treat this add-on as a user convenience and validate thoroughly as this method has not been tested in a Home Assistant environment and may require adjustments to work properly as an add-on.
@@ -55,7 +55,7 @@ Run the published GitHub Container Registry image with `docker run`. Replace the
 docker run --rm \
     -p 5000:5000 \
     -e SKILL_HOSTNAME=alexa.example.com \
-    -e MA_HOSTNAME=ma.example.com \
+    -e STREAM_HOSTNAME=ma.example.com \
     -e PORT=5000 \
     -e LOCALE=en-US \
     -e AWS_DEFAULT_REGION=us-east-1 \
@@ -75,7 +75,7 @@ Notes:
 | Variable | Required | Default | Description |
 |---|:---:|:---:|---|
 | `SKILL_HOSTNAME` | Yes | — | Must be a publicly reachable HTTPS host (example: `alexa.example.com`). Should proxy to your open port on this container (port **5000** by default).  Public hostname used in the Alexa skill manifest and to validate the skill endpoint. |
-| `MA_HOSTNAME` | *No | — | ***REQUIRED** if your device does not have a display (does not support APL). Music Assistant server hostname (example: `ma.example.com`). Should proxy to your stream port on the Music Assistant server (port **8097** by default). Also required if you would like album art on your APL device. |
+| `STREAM_HOSTNAME` | *No | — | ***REQUIRED** if your device does not have a display (does not support APL). Music Assistant server hostname (example: `ma.example.com`). Should proxy to your stream port on the Music Assistant server (port **8097** by default). Also required if you would like album art on your APL device. |
 | `APP_USERNAME` | No | — | Username for the web UI and API basic authentication. In Docker Compose this is provided via a Docker secret (`/run/secrets/APP_USERNAME`) pointing to `./secrets/app_username.txt`, or as a plain env var when not using secrets. |
 | `APP_PASSWORD` | No | — | Password for the web UI and API basic authentication. Can be supplied as a Docker secret file or plain env var. |
 | `PORT` | No | `5000` | Port the app lives at. Ensure the `ports` mapping in [docker-compose.yml](docker-compose.yml) matches this value. |

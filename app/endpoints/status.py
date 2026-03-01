@@ -289,7 +289,7 @@ def _compute_metadata_html():
         
         metadata_info = dict(skill_data.info)  # Create a copy
         
-        # Apply MA_HOSTNAME replacement to image URLs for display
+        # Apply STREAM_HOSTNAME replacement to image URLs for display
         try:
             hostname = get_ma_hostname(raise_on_http_scheme=False)
             if hostname:
