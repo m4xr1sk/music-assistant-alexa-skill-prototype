@@ -1,0 +1,18 @@
+services:
+  music-assistant-skill:
+    build: .
+    image: music-assistant-skill:local
+    environment:
+      - SKILL_HOSTNAME=alexa.[yourdomain]
+      - STREAM_HOSTNAME=stream.[yourdomain]
+      - MA_SERVER_URL=http://[IP_ADDRESS]:8095
+      - PORT=5150
+      - ADMIN_PORT=5151
+      - LOCALE=it-IT
+      - TZ=Europe/Rome
+    ports:
+      - 5150:5150   # Public — Alexa skill endpoint (tunnel)
+      - 5151:5151   # Local  — Admin + MA API (LAN only)
+    volumes:
+      - ./secrets:/app/secrets
+    restart: unless-stopped

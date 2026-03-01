@@ -27,6 +27,13 @@ def main():
 
     # Start gunicorn for the public server as a subprocess
     print(f'[PUBLIC] Starting gunicorn on port {port}')
+    
+    # Ensure PYTHONPATH includes the current directory so gunicorn can find 'app:app'
+    env = os.environ.copy()
+    src_dir = os.path.dirname(os.path.abspath(__file__))
+    current_pythonpath = env.get('PYTHONPATH', '')
+    env['PYTHONPATH'] = f"{src_dir}:{current_pythonpath}" if current_pythonpath else src_dir
+
     gunicorn_cmd = [
         sys.executable, '-m', 'gunicorn',
         '--bind', f'0.0.0.0:{port}',
@@ -35,7 +42,7 @@ def main():
         '--access-logfile', '-',
         'app:app'
     ]
-    proc = subprocess.Popen(gunicorn_cmd)
+    proc = subprocess.Popen(gunicorn_cmd, env=env)
 
     # Forward signals to gunicorn
     def _forward(signum, frame):

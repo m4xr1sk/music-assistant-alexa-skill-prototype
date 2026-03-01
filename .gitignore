@@ -84,3 +84,5 @@ tmp
 
 # Secrets (auto-generated at first run)
 secrets/
+ask_data/cli_config
+docker-compose.yml
