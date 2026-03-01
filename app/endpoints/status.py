@@ -11,6 +11,7 @@ import requests
 from requests.exceptions import RequestException
 from env_secrets import get_env_secret
 from pathlib import Path
+from persistent_store import store
 
 status_bp = Blueprint('status_bp', __name__)
 
@@ -18,101 +19,42 @@ status_bp = Blueprint('status_bp', __name__)
 def _build_status_json():
     api_user = get_env_secret('APP_USERNAME')
     api_pass = get_env_secret('APP_PASSWORD')
-    skill_html = '<span class="led green"></span> Skill running'
-
-    skill_ask_html = '<span class="muted">ASK CLI not available in container (Manual Setup required)</span>'
+    skill_html = '<span class="status-indicator online"></span> Skill running'
 
     # MA API check
     endpoint_url = request.host_url.rstrip('/') + '/ma/latest-url'
     try:
         auth = (api_user, api_pass) if api_user and api_pass else None
         resp = requests.get(endpoint_url, timeout=2, auth=auth)
+        content_preview = escape(resp.text)
         try:
-            content_text = resp.content.decode('utf-8', errors='replace')
+            parsed = resp.json()
+            content_preview = escape(json.dumps(parsed, indent=2, ensure_ascii=False))
         except Exception:
-            content_text = str(resp.content)
-        try:
-            parsed = json.loads(content_text)
-            pretty = json.dumps(parsed, indent=2, ensure_ascii=False)
-            content_preview = escape(pretty)
-        except Exception:
-            content_preview = escape(content_text)
+            pass
+            
         if resp.ok:
             ma_api_html = (
-                f'<span class="led green"></span> Music Assistant API reachable ({resp.status_code}) — /ma/latest-url'
-                f"<pre class='status-box' tabindex='0' style='white-space:pre-wrap;background:#f6f6f6;padding:8px;border-radius:4px;max-height:200px;overflow:auto;user-select:text'>"
-                f"{content_preview}</pre>"
+                f'<div class="status-item"><span class="status-indicator online"></span> Music Assistant API reachable ({resp.status_code})</div>'
+                f"<pre class='code-block'>{content_preview}</pre>"
             )
         else:
             ma_api_html = (
-                f'<span class="led red"></span> Music Assistant API responded {resp.status_code} for /ma/latest-url'
-                f"<pre class='status-box' tabindex='0' style='white-space:pre-wrap;background:#fdf2f2;padding:8px;border-radius:4px;max-height:200px;overflow:auto;user-select:text'>"
-                f"{content_preview}</pre>"
-            )
-    except RequestException as e:
-        ma_api_html = f'<span class="led red"></span> Error: {str(e)}'
-
-    # Alexa API check
-    alexa_endpoint = request.host_url.rstrip('/') + '/alexa/latest-url'
-    try:
-        auth = (api_user, api_pass) if api_user and api_pass else None
-        resp = requests.get(alexa_endpoint, timeout=2, auth=auth)
-        try:
-            content_text = resp.content.decode('utf-8', errors='replace')
-        except Exception:
-            content_text = str(resp.content)
-        try:
-            parsed = json.loads(content_text)
-            pretty = json.dumps(parsed, indent=2, ensure_ascii=False)
-            content_preview = escape(pretty)
-        except Exception:
-            content_preview = escape(content_text)
-        if resp.ok:
-            alexa_api_html = (
-                f'<span class="led green"></span> Alexa API reachable ({resp.status_code}) — /alexa/latest-url'
-                f"<pre class='status-box' tabindex='0' style='white-space:pre-wrap;background:#f6f6f6;padding:8px;border-radius:4px;max-height:200px;overflow:auto;user-select:text'>"
-                f"{content_preview}</pre>"
-            )
-        else:
-            alexa_api_html = (
-                f'<span class="led red"></span> Alexa API responded {resp.status_code} for /alexa/latest-url'
-                f"<pre class='status-box' tabindex='0' style='white-space:pre-wrap;background:#fdf2f2;padding:8px;border-radius:4px;max-height:200px;overflow:auto;user-select:text'>"
-                f"{content_preview}</pre>"
-            )
-    except RequestException as e:
-        alexa_api_html = f'<span class="led red"></span> Error: {str(e)}'
-
-    # Metadata Refresh display (APL updates)
-    try:
-        from skill import data as skill_data
-        metadata_info = dict(skill_data.info)  # Create a copy
-        pretty_metadata = json.dumps(metadata_info, indent=2, ensure_ascii=False)
-        content_preview = escape(pretty_metadata)
-        
-        if metadata_info.get('audioSources') or metadata_info.get('primaryText'):
-            metadata_html = (
-                f'<span class="led green"></span> APL Metadata Refresh (current data)'
-                f"<pre class='status-box' tabindex='0' style='white-space:pre-wrap;background:#f6f6f6;padding:8px;border-radius:4px;max-height:200px;overflow:auto;user-select:text'>"
-                f"{content_preview}</pre>"
-            )
-        else:
-            metadata_html = (
-                f'<span class="led yellow"></span> APL Metadata Refresh (no data loaded yet)'
-                f"<pre class='status-box' tabindex='0' style='white-space:pre-wrap;background:#fff9e6;padding:8px;border-radius:4px;max-height:200px;overflow:auto;user-select:text'>"
-                f"{content_preview}</pre>"
+                f'<div class="status-item"><span class="status-indicator offline"></span> Music Assistant API responded {resp.status_code}</div>'
+                f"<pre class='code-block error'>{content_preview}</pre>"
             )
     except Exception as e:
-        metadata_html = f'<span class="led red"></span> Error loading metadata: {escape(str(e))}'
+        ma_api_html = f'<div class="status-item"><span class="status-indicator offline"></span> Error: {escape(str(e))}</div>'
 
     # lightweight invocations link
-    intent_logs = current_app.config.get('INTENT_LOGS', [])
-    count = len(intent_logs) if intent_logs else 0
+    intent_logs = store.get_intent_logs()
+    count = len(intent_logs)
     if count:
-        invocations_html = f'<a href="/invocations" target="_blank" rel="noopener noreferrer">View {count} invocations</a>'
+        invocations_html = f'<a href="/invocations" class="btn-link">Invocations Log ({count})</a>'
     else:
-        invocations_html = '<span class="muted">No recent invocations</span>'
+        invocations_html = '<button class="btn-link" disabled style="opacity: 0.5; cursor: not-allowed; border: none;">Invocations Log (0)</button>'
 
-    return {'skill_html': skill_html, 'skill_ask_html': skill_ask_html, 'ma_api_html': ma_api_html, 'alexa_api_html': alexa_api_html, 'metadata_html': metadata_html, 'invocations_html': invocations_html, 'created': False}
+    return {'skill_html': skill_html, 'ma_api_html': ma_api_html, 'metadata_html': metadata_html, 'invocations_html': invocations_html}
 
 
 def _compute_ma_api_html(api_user=None, api_pass=None):
@@ -134,51 +76,17 @@ def _compute_ma_api_html(api_user=None, api_pass=None):
             content_preview = escape(content_text)
         if resp.ok:
             return (
-                f'<span class="led green"></span> Music Assistant API reachable ({resp.status_code}) — /ma/latest-url'
-                f"<pre class='status-box' tabindex='0' style='white-space:pre-wrap;background:#f6f6f6;padding:8px;border-radius:4px;max-height:200px;overflow:auto;user-select:text'>"
-                f"{content_preview}</pre>"
+                f'<div class="status-item"><span class="status-indicator online"></span> Music Assistant API reachable ({resp.status_code})</div>'
+                f"<p class=\"text-muted\" style=\"margin-top:0; font-size:0.85em\">Latest data received from the Music Assistant server via webhook.</p>"
+                f"<pre class='code-block'>{content_preview}</pre>"
             )
         else:
             return (
-                f'<span class="led red"></span> Music Assistant API responded {resp.status_code} for /ma/latest-url'
-                f"<pre class='status-box' tabindex='0' style='white-space:pre-wrap;background:#fdf2f2;padding:8px;border-radius:4px;max-height:200px;overflow:auto;user-select:text'>"
-                f"{content_preview}</pre>"
+                f'<div class="status-item"><span class="status-indicator offline"></span> Music Assistant API responded {resp.status_code}</div>'
+                f"<pre class='code-block error'>{content_preview}</pre>"
             )
     except RequestException as e:
-        return f'<span class="led red"></span> Error: {str(e)}'
-
-
-def _compute_alexa_api_html(api_user=None, api_pass=None):
-    api_user = api_user or get_env_secret('APP_USERNAME')
-    api_pass = api_pass or get_env_secret('APP_PASSWORD')
-    alexa_endpoint = (request.host_url.rstrip('/') if request else '') + '/alexa/latest-url'
-    try:
-        auth = (api_user, api_pass) if api_user and api_pass else None
-        resp = requests.get(alexa_endpoint, timeout=2, auth=auth)
-        try:
-            content_text = resp.content.decode('utf-8', errors='replace')
-        except Exception:
-            content_text = str(resp.content)
-        try:
-            parsed = json.loads(content_text)
-            pretty = json.dumps(parsed, indent=2, ensure_ascii=False)
-            content_preview = escape(pretty)
-        except Exception:
-            content_preview = escape(content_text)
-        if resp.ok:
-            return (
-                f'<span class="led green"></span> Alexa API reachable ({resp.status_code}) — /alexa/latest-url'
-                f"<pre class='status-box' tabindex='0' style='white-space:pre-wrap;background:#f6f6f6;padding:8px;border-radius:4px;max-height:200px;overflow:auto;user-select:text'>"
-                f"{content_preview}</pre>"
-            )
-        else:
-            return (
-                f'<span class="led red"></span> Alexa API responded {resp.status_code} for /alexa/latest-url'
-                f"<pre class='status-box' tabindex='0' style='white-space:pre-wrap;background:#fdf2f2;padding:8px;border-radius:4px;max-height:200px;overflow:auto;user-select:text'>"
-                f"{content_preview}</pre>"
-            )
-    except RequestException as e:
-        return f'<span class="led red"></span> Error: {str(e)}'
+        return f'<div class="status-item"><span class="status-indicator offline"></span> Error: {escape(str(e))}</div>'
 
 
 @status_bp.route('/status/ma', methods=['GET'])
@@ -186,54 +94,33 @@ def status_ma():
     return jsonify({'ma_api_html': _compute_ma_api_html()})
 
 
-@status_bp.route('/status/alexa', methods=['GET'])
-def status_alexa():
-    return jsonify({'alexa_api_html': _compute_alexa_api_html()})
-
-
 def _compute_metadata_html():
     """Compute HTML showing the current APL metadata being sent in refreshes."""
     try:
-        from skill import data as skill_data
-        from skill.util import get_ma_hostname, replace_ip_in_url
-        
-        metadata_info = dict(skill_data.info)  # Create a copy
-        
-        # Apply STREAM_HOSTNAME replacement to image URLs for display
-        try:
-            hostname = get_ma_hostname(raise_on_http_scheme=False)
-            if hostname:
-                if metadata_info.get('coverImageSource'):
-                    metadata_info['coverImageSource'] = replace_ip_in_url(metadata_info['coverImageSource'], hostname)
-                if metadata_info.get('backgroundImageSource'):
-                    metadata_info['backgroundImageSource'] = replace_ip_in_url(metadata_info['backgroundImageSource'], hostname)
-        except Exception:
-            pass  # If hostname replacement fails, show original URLs
+        metadata_info = store.get_ma_store() or {}
         
         pretty_metadata = json.dumps(metadata_info, indent=2, ensure_ascii=False)
         content_preview = escape(pretty_metadata)
         
-        if metadata_info.get('audioSources') or metadata_info.get('primaryText'):
+        if metadata_info.get('streamUrl') or metadata_info.get('title'):
             return (
-                f'<span class="led green"></span> APL Metadata Refresh (current data)'
-                f"<pre class='status-box' tabindex='0' style='white-space:pre-wrap;background:#f6f6f6;padding:8px;border-radius:4px;max-height:200px;overflow:auto;user-select:text'>"
-                f"{content_preview}</pre>"
+                f'<div class="status-item"><span class="status-indicator online"></span> APL Metadata Refresh (current data)</div>'
+                f"<pre class='code-block'>{content_preview}</pre>"
             )
         else:
             return (
-                f'<span class="led yellow"></span> APL Metadata Refresh (no data loaded yet)'
-                f"<pre class='status-box' tabindex='0' style='white-space:pre-wrap;background:#fff9e6;padding:8px;border-radius:4px;max-height:200px;overflow:auto;user-select:text'>"
-                f"{content_preview}</pre>"
+                f'<div class="status-item"><span class="status-indicator warning"></span> APL Metadata Refresh (no data loaded yet)</div>'
+                f"<pre class='code-block warning'>{content_preview}</pre>"
             )
     except Exception as e:
-        return f'<span class="led red"></span> Error loading metadata: {escape(str(e))}'
+        return f'<div class="status-item"><span class="status-indicator offline"></span> Error loading metadata: {escape(str(e))}</div>'
 
 
 @status_bp.route('/status/metadata', methods=['GET'])
 def status_metadata():
     return jsonify({'metadata_html': _compute_metadata_html()})
 
-@status_bp.route('/status', methods=['GET'])
+@status_bp.route('/', methods=['GET'])
 def status():
     # If client requested JSON, return the aggregated checks
     want_json = request.args.get('format') == 'json' or 'application/json' in (request.headers.get('Accept') or '')
@@ -243,18 +130,17 @@ def status():
     # Non-JSON: render status template
     try:
         tpl_path = Path(__file__).parent.parent / 'templates' / 'status.html'
-        tpl = tpl_path.read_text()
-        tpl = tpl.replace('__SKILL_HTML__', '<span class="led green"></span> Skill running')
-        tpl = tpl.replace('__SKILL_ASK_HTML__', '<span class="muted">Checking ASK CLI status...</span>')
-        tpl = tpl.replace('__MA_API_HTML__', '<span class="muted">Checking Music Assistant API...</span>')
-        tpl = tpl.replace('__ALEXA_API_HTML__', '<span class="muted">Checking Alexa API...</span>')
-        tpl = tpl.replace('__METADATA_HTML__', '<span class="muted">Loading APL metadata...</span>')
-        intent_logs = current_app.config.get('INTENT_LOGS', [])
-        count = len(intent_logs) if intent_logs else 0
+        tpl = tpl_path.read_text(encoding='utf-8')
+        tpl = tpl.replace('__SKILL_HTML__', '<span class="status-indicator online"></span> Skill running')
+        tpl = tpl.replace('__MA_API_HTML__', '<span class="text-muted">Checking Music Assistant API...</span>')
+        tpl = tpl.replace('__METADATA_HTML__', '<span class="text-muted">Loading APL metadata...</span>')
+        
+        intent_logs = store.get_intent_logs()
+        count = len(intent_logs)
         if count:
-            invocations_html = f'<a href="/invocations" target="_blank" rel="noopener noreferrer">View {count} invocations</a>'
+            invocations_html = f'<a href="/invocations" class="btn-link">Invocations Log ({count})</a>'
         else:
-            invocations_html = '<span class="muted">No recent invocations</span>'
+            invocations_html = '<button class="btn-link" disabled style="opacity: 0.5; cursor: not-allowed; border: none;">Invocations Log (0)</button>'
         tpl = tpl.replace('__INVOCATIONS_HTML__', invocations_html)
         return Response(tpl, status=200, mimetype='text/html')
     except Exception:
@@ -276,21 +162,13 @@ def status_api():
     """Lightweight API used by the status UI to fetch aggregated checks."""
     return jsonify(_build_status_json())
 
-
-@status_bp.route('/status/ask', methods=['GET'])
-def status_ask():
-    """Return only the ASK CLI check fragment used by the client UI."""
-    data = _build_status_json()
-    return jsonify({'skill_ask_html': data.get('skill_ask_html')})
-
-
 @status_bp.route('/status/invocations', methods=['GET'])
 def status_invocations():
     """Return the current invocation count and invocation HTML so the UI can refresh it live."""
-    intent_logs = current_app.config.get('INTENT_LOGS', [])
-    count = len(intent_logs) if intent_logs else 0
+    intent_logs = store.get_intent_logs()
+    count = len(intent_logs)
     if count:
-        invocations_html = f'<a href="/invocations" target="_blank" rel="noopener noreferrer">View {count} invocations</a>'
+        invocations_html = f'<a href="/invocations" class="btn-link">Invocations Log ({count})</a>'
     else:
-        invocations_html = '<span class="muted">No recent invocations</span>'
+        invocations_html = '<button class="btn-link" disabled style="opacity: 0.5; cursor: not-allowed; border: none;">Invocations Log (0)</button>'
     return jsonify({'count': count, 'invocations_html': invocations_html})

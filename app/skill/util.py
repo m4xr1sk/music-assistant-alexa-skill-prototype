@@ -213,17 +213,27 @@ def play(url, offset, text, response_builder, supports_apl=False):
     except Exception:
         logging.exception('Error while preparing Alexa API push payload')
 
+    # If APL is supported, we also need to update the internal data.info['audioSources']
+    # so that subsequent APL refreshes see the new URL.
+    data.info['audioSources'] = url
+
     return response_builder.response
 
 
 def stop(text, response_builder, supports_apl=False):
-    """Issue stop directive to stop the audio.
-
-    Issuing AudioPlayer.Stop directive to stop the audio.
-    Attributes already stored when AudioPlayer.Stopped request received.
-    """
-    # type: (str, ResponseFactory) -> Response
-    response_builder.add_directive(StopDirective())
+    """Issue stop directive to stop the audio."""
+    if supports_apl:
+        from ask_sdk_model.interfaces.alexa.presentation.apl import ExecuteCommandsDirective, ControlMediaCommand, MediaCommandType
+        # Send pause command to APL video player to stop audio immediately
+        cmd = ControlMediaCommand(command=MediaCommandType.pause, component_id="videoPlayer")
+        response_builder.add_directive(
+            ExecuteCommandsDirective(
+                commands=[cmd],
+                token="playbackToken"
+            )
+        )
+    else:
+        response_builder.add_directive(StopDirective())
 
     if text:
         response_builder.speak(text)
@@ -352,6 +362,20 @@ def update_apl_metadata(response_builder):
                 "componentId": "AlexaBackground",
                 "property": "backgroundImageSource",
                 "value": background_image
+            })
+
+        # Update Audio Source if it changed (FORCE REFRESH/SKIP)
+        audio_source = data.info.get("audioSources", "")
+        if audio_source:
+            if hostname:
+                audio_source = replace_ip_in_url(audio_source, hostname)
+            
+            # Using SetValue on 'source' forces the Video component to reload and play
+            commands.append({
+                "type": "SetValue",
+                "componentId": "videoPlayer",
+                "property": "source",
+                "value": audio_source
             })
         
         # Send ExecuteCommands directive if we have any commands

@@ -9,8 +9,7 @@ from flask import jsonify, request
 import time
 
 
-_store = None
-_version = 0  # Increment each time new data is pushed
+from persistent_store import store
 
 
 def register_routes(bp):
@@ -20,26 +19,31 @@ def register_routes(bp):
 
         Expected JSON body: { streamUrl, title, artist, album, imageUrl }
         """
-        global _store, _version
         data = request.get_json(silent=True) or {}
         stream_url = data.get('streamUrl')
-        _version += 1
-        _store = {
+        
+        # Get current state to increment version
+        current_store = store.get_ma_store() or {}
+        version = current_store.get('version', 0) + 1
+        
+        payload = {
             'streamUrl': stream_url,
             'title': data.get('title'),
             'artist': data.get('artist'),
             'album': data.get('album'),
             'imageUrl': data.get('imageUrl'),
             'playerId': data.get('playerId'),
-            'version': _version,
+            'version': version,
             'timestamp': time.time()
         }
-        return jsonify({'status': 'ok', 'version': _version})
+        store.set_ma_store(payload)
+        return jsonify({'status': 'ok', 'version': version})
 
     @bp.route('/latest-url', methods=['GET'])
     def latest_url():
         """Return the last pushed stream metadata for the Music Assistant.
         """
-        if not _store:
+        ma_store = store.get_ma_store()
+        if not ma_store:
             return jsonify({'error': 'No URL available, please check if Music Assistant has pushed a URL to the API'}), 404
-        return jsonify(_store)
+        return jsonify(ma_store)

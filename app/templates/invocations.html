@@ -1,79 +1,182 @@
 <!doctype html>
-<html>
+<html lang="it">
+
 <head>
-  <meta charset="utf-8">
-  <title>Invocations</title>
-  <style>
-        pre{white-space:pre-wrap;background:#f6f6f6;padding:8px;border-radius:4px}
-        .muted{color:#666}
-        button{padding:6px 10px}
-        .invocation{border-bottom:1px solid #efefef;padding:10px 0}
-        .invocation-header{display:flex;align-items:center;gap:8px}
-        .intent-pair{display:none}
-        .intent-toggle{background:#fff;border:1px solid #ddd;border-radius:4px;cursor:pointer}
-  </style>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Alexa Invocations</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #00A4E3;
+            --bg-gradient: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%);
+            --glass: rgba(255, 255, 255, 0.05);
+            --glass-border: rgba(255, 255, 255, 0.1);
+            --text: #f8fafc;
+            --text-muted: #94a3b8;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg-gradient);
+            color: var(--text);
+            margin: 0;
+            padding: 40px 20px;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 40px;
+        }
+
+        h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            margin: 0;
+            background: linear-gradient(to right, #38bdf8, #818cf8);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .back-link {
+            color: var(--text-muted);
+            text-decoration: none;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: color 0.2s;
+        }
+
+        .back-link:hover {
+            color: var(--text);
+        }
+
+        .invocation {
+            background: var(--glass);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--glass-border);
+            border-radius: 16px;
+            margin-bottom: 16px;
+            overflow: hidden;
+            transition: transform 0.2s;
+        }
+
+        .invocation-header {
+            padding: 20px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            user-select: none;
+        }
+
+        .invocation-header h3 {
+            margin: 0;
+            font-size: 1rem;
+            font-weight: 600;
+            color: #e2e8f0;
+        }
+
+        .intent-toggle {
+            background: rgba(255, 255, 255, 0.1);
+            border: none;
+            color: var(--text);
+            padding: 6px 14px;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .intent-toggle:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .intent-pair {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            padding: 0 20px 20px 20px;
+            border-top: 1px solid var(--glass-border);
+            background: rgba(0, 0, 0, 0.2);
+        }
+
+        @media (max-width: 768px) {
+            .intent-pair {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .intent-pair strong {
+            display: block;
+            margin: 15px 0 10px 0;
+            color: var(--text-muted);
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        pre {
+            background: rgba(15, 23, 42, 0.8);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            padding: 16px;
+            font-family: 'SFMono-Regular', Consolas, monospace;
+            font-size: 12px;
+            max-height: 400px;
+            overflow: auto;
+            margin: 0;
+            color: #cbd5e1;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+
+        .muted {
+            text-align: center;
+            color: var(--text-muted);
+            padding: 40px;
+        }
+    </style>
 </head>
+
 <body>
-  <h1>Invocations</h1>
-  <p><a href="/status">Back to status</a></p>
-  <div id="invocations-list">__INVOCATIONS_BODY__</div>
+    <div class="container">
+        <header>
+            <h1>Alexa Invocations</h1>
+            <a href="/" class="back-link">&larr; Dashboard</a>
+        </header>
 
-<script>
-var lastClickedIntentPair = null;
-var lastClickedPre = null;
-document.addEventListener('click', function(e){
-    var t = e.target;
-    if(t.classList && t.classList.contains('intent-toggle')){
-        var pair = t.parentNode.nextElementSibling;
-        if(!pair) return;
-        pair.style.display = (pair.style.display === 'none' || pair.style.display === '') ? 'block' : 'none';
-        lastClickedIntentPair = pair;
-        lastClickedPre = null;
-        return;
-    }
-    // If user clicks inside a payload/response area, remember that pair and the specific <pre>
-    var p = t;
-    lastClickedPre = null;
-    while(p && p !== document.body){
-        if(p.tagName && p.tagName.toLowerCase() === 'pre'){
-            lastClickedPre = p;
-            var pair = p.closest('.intent-pair');
-            if(pair) lastClickedIntentPair = pair;
-            break;
-        }
-        if(p.classList && p.classList.contains('intent-pair')){ lastClickedIntentPair = p; break; }
-        p = p.parentNode;
-    }
-});
+        <div id="invocations-container">
+            __INVOCATIONS_BODY__
+        </div>
+    </div>
 
-// Ctrl/Cmd+A behavior: if user last clicked inside an intent pair, select only
-// the payload/response pre block instead of selecting the whole document.
-document.addEventListener('keydown', function(e){
-    var isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
-    var aPressed = (e.key && (e.key === 'a' || e.key === 'A'));
-    if(!aPressed) return;
-    if((isMac && e.metaKey) || (!isMac && e.ctrlKey)){
-        if(lastClickedPre){
-            e.preventDefault();
-            var range = document.createRange();
-            range.selectNodeContents(lastClickedPre);
-            var sel = window.getSelection();
-            sel.removeAllRanges();
-            sel.addRange(range);
-            return;
-        }
-        if(lastClickedIntentPair){
-            e.preventDefault();
-            var range = document.createRange();
-            range.selectNodeContents(lastClickedIntentPair);
-            var sel = window.getSelection();
-            sel.removeAllRanges();
-            sel.addRange(range);
-            return;
-        }
-    }
-});
-</script>
-
+    <script>
+        document.addEventListener('click', function (e) {
+            const header = e.target.closest('.invocation-header');
+            if (header || e.target.classList.contains('intent-toggle')) {
+                const invocation = e.target.closest('.invocation');
+                const pair = invocation.querySelector('.intent-pair');
+                const btn = invocation.querySelector('.intent-toggle');
+                const isHidden = pair.style.display === 'none' || pair.style.display === '';
+                pair.style.display = isHidden ? 'grid' : 'none';
+                btn.textContent = isHidden ? 'Hide' : 'Show';
+            }
+        });
+    </script>
 </body>
+
 </html>

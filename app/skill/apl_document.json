@@ -198,7 +198,7 @@
               "commands": [
                 {
                   "type": "Idle",
-                  "delay": 500
+                  "delay": 250
                 },
                 {
                   "type": "SetValue",

@@ -15,6 +15,7 @@ from flask_ask_sdk.skill_adapter import SkillAdapter
 from skill.lambda_function import sb
 import music_assistant_api as ma_api
 import alexa_api as alexa_api
+from persistent_store import store
 from werkzeug.middleware.proxy_fix import ProxyFix
 from env_secrets import get_env_secret
 
@@ -116,25 +117,19 @@ def _capture_incoming_intent():
 def _record_incoming_intent(response):
     if getattr(g, '_incoming_alexa_payload', None) is not None:
         try:
-            logs = app.config.setdefault('INTENT_LOGS', [])
             entry = {
                 'incoming': g._incoming_alexa_payload,
                 'response_status': response.status_code,
                 'response_body': response.get_data(as_text=True),
                 'ts': getattr(g, '_incoming_alexa_ts', None)
             }
-            logs.append(entry)
-            maxlen = app.config.get('INTENT_LOGS_MAXLEN', 500)
-            if len(logs) > maxlen:
-                del logs[0:len(logs) - maxlen]
+            store.add_intent_log(entry)
         except Exception:
             pass
     return response
 
 
-# Centralized intent logs
-app.config['INTENT_LOGS'] = []
-app.config['INTENT_LOGS_MAXLEN'] = 500
+# Centralized intent logs (Legacy configuration removed in favor of persistent_store)
 
 
 @app.route("/", methods=["POST"])
@@ -149,9 +144,7 @@ def invoke_skill():
 admin_app = Flask('admin')
 admin_app.wsgi_app = ProxyFix(admin_app.wsgi_app, x_for=1, x_proto=1, x_host=1)
 
-# Share intent logs between public and admin apps
-admin_app.config['INTENT_LOGS'] = app.config['INTENT_LOGS']
-admin_app.config['INTENT_LOGS_MAXLEN'] = app.config['INTENT_LOGS_MAXLEN']
+# Intent logs are now managed by persistent_store.py
 
 
 class BasicAuthMiddleware:

@@ -7,9 +7,11 @@ from datetime import datetime, timezone
 invocations_bp = Blueprint('invocations_bp', __name__)
 
 
+from persistent_store import store
+
 @invocations_bp.route('/invocations', methods=['GET'])
 def invocations():
-    intent_logs = current_app.config.get('INTENT_LOGS', [])
+    intent_logs = store.get_intent_logs()
     body_items = []
     for idx, entry in enumerate(reversed(intent_logs)):
         entry_id = len(intent_logs) - idx

@@ -12,7 +12,7 @@ from pathlib import Path
 from flask import jsonify, request
 
 
-_store = None
+from persistent_store import store
 
 
 def register_routes(bp):
@@ -22,27 +22,28 @@ def register_routes(bp):
 
         Expected JSON body: { streamUrl, title, secondary, imageUrl }
         """
-        global _store
         data = request.get_json(silent=True) or {}
         stream_url = data.get('streamUrl')
         if not stream_url:
             return jsonify({'error': 'Missing required fields'}), 400
 
-        _store = {
+        payload = {
             'streamUrl': stream_url,
             'title': data.get('title'),
             'secondary': data.get('secondary'),
             'imageUrl': data.get('imageUrl'),
         }
+        store.set_alexa_store(payload)
         return jsonify({'status': 'ok'})
 
     @bp.route('/latest-url', methods=['GET'])
     def latest_url():
         """Return the last pushed stream metadata from the Alexa skill.
         """
-        if not _store:
+        alexa_store = store.get_alexa_store()
+        if not alexa_store:
             return jsonify({'error': 'Check skill invocations and skill logs.  If there are no invocations, you have made a configuration error'}), 404
-        return jsonify(_store)
+        return jsonify(alexa_store)
     
     @bp.route('/intents', methods=['GET'])
     def intents():

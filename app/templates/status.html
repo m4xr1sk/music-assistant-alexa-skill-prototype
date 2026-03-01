@@ -1,115 +1,295 @@
 <!doctype html>
-            <html>
-            <head>
-                <meta charset="utf-8">
-                <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0%200%20100%20100'><circle cx='50' cy='50' r='50' fill='%2300A4E3'/><circle cx='50' cy='50' r='34' fill='none' stroke='%23FFFFFF' stroke-width='8' opacity='0.8'/></svg>">
-                <title>Service Status</title>
-                <style>
-                body { font-family: Arial, Helvetica, sans-serif; padding: 20px; }
-                .led { display:inline-block; width:14px; height:14px; border-radius:50%; margin-right:8px; }
-                .green { background:#2ecc71; }
-                .yellow { background:#f1c40f; }
-                .red { background:#e74c3c; }
-                .row { margin: 8px 0; }
-                .muted { color:#666; font-size:0.9em }
-                .intent-toggle { cursor: pointer; background: transparent; border: none; padding: 0; font-size: 1em }
-                .intent-entry { margin-bottom:12px }
-                .status-box:focus { outline: 2px solid #00A4E3; outline-offset: 2px; }
-                </style>
-            </head>
-            <body>
-                <h1>Service Status</h1>
-                <div class="row">__SKILL_HTML__</div>
-                <div class="row" id="skill-ask-row">__SKILL_ASK_HTML__</div>
-                <div class="row" id="api-row">__MA_API_HTML__</div>
-                <div class="row" id="alexa-row">__ALEXA_API_HTML__</div>
-                <div class="row" id="metadata-row">__METADATA_HTML__</div>
-                <div class="row" id="invocations-row">__INVOCATIONS_HTML__</div>
-                <script>
-                // Fetch MA and Alexa checks independently so each row updates when ready
-                (function pollMa(){
-                    fetch('/status/ma').then(r=>r.json()).then(j=>{
-                        try{ const maEl = document.getElementById('api-row'); if(maEl && j.ma_api_html){ maEl.innerHTML = j.ma_api_html; } }catch(e){}
-                        setTimeout(pollMa, 3000);
-                    }).catch(()=>{ setTimeout(pollMa, 5000); });
-                })();
+<html lang="it">
 
-                (function pollAlexa(){
-                    fetch('/status/alexa').then(r=>r.json()).then(j=>{
-                        try{ const alexaEl = document.getElementById('alexa-row'); if(alexaEl && j.alexa_api_html){ alexaEl.innerHTML = j.alexa_api_html; } }catch(e){}
-                        setTimeout(pollAlexa, 3000);
-                    }).catch(()=>{ setTimeout(pollAlexa, 5000); });
-                })();
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/svg+xml"
+        href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0%200%20100%20100'><circle cx='50' cy='50' r='50' fill='%2300A4E3'/><circle cx='50' cy='50' r='34' fill='none' stroke='%23FFFFFF' stroke-width='8' opacity='0.8'/></svg>">
+    <title>MA Skill Status</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #00A4E3;
+            --success: #2ecc71;
+            --warning: #f1c40f;
+            --danger: #e74c3c;
+            --bg-gradient: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%);
+            --glass: rgba(255, 255, 255, 0.05);
+            --glass-border: rgba(255, 255, 255, 0.1);
+            --text: #f8fafc;
+            --text-muted: #94a3b8;
+        }
 
-                (function pollMetadata(){
-                    fetch('/status/metadata').then(r=>r.json()).then(j=>{
-                        try{ const metadataEl = document.getElementById('metadata-row'); if(metadataEl && j.metadata_html){ metadataEl.innerHTML = j.metadata_html; } }catch(e){}
-                        setTimeout(pollMetadata, 3000);
-                    }).catch(()=>{ setTimeout(pollMetadata, 5000); });
-                })();
+        * {
+            box-sizing: border-box;
+        }
 
-                (function pollAsk(){
-                    fetch('/status/ask').then(r=>r.json()).then(j=>{
-                        try{ const askEl = document.getElementById('skill-ask-row'); if(askEl && j.skill_ask_html){ askEl.innerHTML = j.skill_ask_html; } }catch(e){}
-                        // Ask checks are slower; poll less frequently
-                        setTimeout(pollAsk, 5000);
-                    }).catch(()=>{ setTimeout(pollAsk, 10000); });
-                })();
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg-gradient);
+            color: var(--text);
+            margin: 0;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 40px 20px;
+        }
 
-                // Poll invocations count so the invocation row updates live
-                (function pollInvocations(){
-                    fetch('/status/invocations').then(r=>r.json()).then(j=>{
-                        try{ const invEl = document.getElementById('invocations-row'); if(invEl && j.invocations_html){ invEl.innerHTML = j.invocations_html; } }catch(e){}
-                        setTimeout(pollInvocations, 3000);
-                    }).catch(()=>{ setTimeout(pollInvocations, 5000); });
-                })();
+        .container {
+            width: 100%;
+            max-width: 900px;
+        }
 
-                // Delegated click handler to toggle intent payload/response pairs
-                document.addEventListener('click', function(e){
-                    try{
-                        var t = e.target || e.srcElement;
-                        if(t && t.closest){
-                            var box = t.closest('pre.status-box');
-                            if(box && box.focus){
-                                box.focus();
-                            }
-                        }
-                        if(t && t.classList && t.classList.contains('intent-toggle')){
-                            var pair = t.nextElementSibling;
-                            if(pair && pair.classList && pair.classList.contains('intent-pair')){
-                                pair.style.display = (pair.style.display === 'none' || pair.style.display === '') ? 'block' : 'none';
-                            }
-                        }
-                    }catch(err){}
-                });
+        header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
 
-                // Limit Ctrl/Cmd+A selection to the focused status box.
-                document.addEventListener('keydown', function(e){
-                    try{
-                        var isSelectAll = (e.ctrlKey || e.metaKey) && (e.key === 'a' || e.key === 'A');
-                        if(!isSelectAll){ return; }
+        h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin: 0;
+            background: linear-gradient(to right, #38bdf8, #818cf8);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: -0.025em;
+        }
 
-                        var sel = window.getSelection ? window.getSelection() : null;
-                        var pre = null;
+        .subtitle {
+            color: var(--text-muted);
+            margin-top: 8px;
+            font-size: 1.1rem;
+        }
 
-                        if(document.activeElement && document.activeElement.classList && document.activeElement.classList.contains('status-box')){
-                            pre = document.activeElement;
-                        } else if(sel && sel.anchorNode){
-                            var anchor = sel.anchorNode.nodeType === 1 ? sel.anchorNode : sel.anchorNode.parentElement;
-                            if(anchor && anchor.closest){
-                                pre = anchor.closest('pre.status-box');
-                            }
-                        }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 24px;
+        }
 
-                        if(pre && sel && document.createRange){
-                            e.preventDefault();
-                            var range = document.createRange();
-                            range.selectNodeContents(pre);
-                            sel.removeAllRanges();
-                            sel.addRange(range);
-                        }
-                    }catch(err){}
-                });
-                </script>
-            </body>
-            </html>
+        @media (max-width: 500px) {
+            .grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .card {
+            background: var(--glass);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid var(--glass-border);
+            border-radius: 20px;
+            padding: 24px;
+            transition: transform 0.2s ease, border-color 0.2s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-4px);
+            border-color: rgba(255, 255, 255, 0.2);
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 16px;
+        }
+
+        .card-title {
+            font-weight: 600;
+            font-size: 1.1rem;
+            color: var(--text);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .status-indicator {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            display: inline-block;
+            box-shadow: 0 0 10px currentColor;
+        }
+
+        .online {
+            background: var(--success);
+            color: var(--success);
+        }
+
+        .warning {
+            background: var(--warning);
+            color: var(--warning);
+        }
+
+        .offline {
+            background: var(--danger);
+            color: var(--danger);
+        }
+
+        .code-block {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 12px;
+            padding: 16px;
+            font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+            font-size: 13px;
+            line-height: 1.5;
+            color: #d1d5db;
+            overflow: auto;
+            max-height: 250px;
+            margin: 0;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .code-block.error {
+            border-color: rgba(231, 76, 60, 0.3);
+            color: #fca5a5;
+        }
+
+        .code-block.warning {
+            border-color: rgba(241, 196, 15, 0.3);
+            color: #fef08a;
+        }
+
+        .status-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 12px;
+            font-size: 0.95rem;
+            font-weight: 500;
+        }
+
+        .btn-link {
+            display: inline-flex;
+            align-items: center;
+            padding: 10px 20px;
+            background: var(--primary);
+            color: white;
+            text-decoration: none;
+            border-radius: 12px;
+            font-weight: 600;
+            font-size: 0.95rem;
+            transition: opacity 0.2s ease;
+            margin-top: 10px;
+        }
+
+        .btn-link:hover {
+            opacity: 0.9;
+        }
+
+        .text-muted {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+        }
+
+        footer {
+            margin-top: 60px;
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 0.85rem;
+        }
+
+        /* Pulsing animation for active status */
+        .online {
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% {
+                box-shadow: 0 0 0 0 rgba(46, 204, 113, 0.4);
+            }
+
+            70% {
+                box-shadow: 0 0 0 10px rgba(46, 204, 113, 0);
+            }
+
+            100% {
+                box-shadow: 0 0 0 0 rgba(46, 204, 113, 0);
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <header>
+            <h1>Music Assistant Skill</h1>
+            <div class="subtitle" style="margin-bottom: 20px;">Status & Diagnostics Dashboard</div>
+            <div id="invocations-row">__INVOCATIONS_HTML__</div>
+        </header>
+
+        <div class="grid">
+            <!-- Skill Status -->
+            <div class="card" style="grid-column: 1 / -1;">
+                <div class="card-header">
+                    <div class="card-title">Service Status</div>
+                </div>
+                <div id="skill-row">__SKILL_HTML__</div>
+
+                <div style="margin-top: 24px; padding-top: 16px; border-top: 1px solid var(--glass-border);">
+                    <div style="font-size: 0.9rem; font-weight: 600; color: var(--text-muted); margin-bottom: 8px;">
+                        Quick Setup Guide</div>
+                    <ul style="margin: 0; padding-left: 20px; font-size: 0.9rem; color: #cbd5e1; line-height: 1.6;">
+                        <li>Ensure that Music Assistant and Alexa API are <strong>online</strong>.</li>
+                        <li>Configure HTTPS for the public port (e.g., via a tunnel or reverse proxy).</li>
+                        <li>Enter the public URL in the Amazon <a href="https://developer.amazon.com/alexa/console/ask"
+                                target="_blank" style="color: var(--primary);">Developer Console</a>.</li>
+                        <li>Use the Account Linking credentials generated in the <code>secrets/</code> folder.</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- MA API -->
+            <div class="card" style="grid-column: 1 / -1;">
+                <div class="card-header">
+                    <div class="card-title">Music Assistant API</div>
+                </div>
+                <div id="api-row">__MA_API_HTML__</div>
+            </div>
+
+            <!-- Metadata Refresh -->
+            <div class="card" style="grid-column: 1 / -1;">
+                <div class="card-header">
+                    <div class="card-title">APL Metadata Status (Real-time)</div>
+                </div>
+                <div id="metadata-row">__METADATA_HTML__</div>
+            </div>
+        </div>
+
+        <footer>
+            &copy; 2026 Admin Dashboard &bull; Alexa Skill Prototype Project
+        </footer>
+    </div>
+
+    <script>
+        function updateRow(id, data, htmlKey) {
+            const el = document.getElementById(id);
+            if (el && data[htmlKey]) {
+                el.innerHTML = data[htmlKey];
+            }
+        }
+
+        function poll(url, callback, delay = 3000) {
+            fetch(url)
+                .then(r => r.json())
+                .then(j => {
+                    callback(j);
+                    setTimeout(() => poll(url, callback, delay), delay);
+                })
+                .catch(() => setTimeout(() => poll(url, callback, delay), delay * 2));
+        }
+
+        // Initialize polling
+        poll('/status/ma', j => updateRow('api-row', j, 'ma_api_html'));
+        poll('/status/metadata', j => updateRow('metadata-row', j, 'metadata_html'));
+        poll('/status/invocations', j => updateRow('invocations-row', j, 'invocations_html'));
+    </script>
+</body>
+
+</html>
