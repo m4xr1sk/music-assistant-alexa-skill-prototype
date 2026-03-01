@@ -1,6 +1,7 @@
 services:
   music-assistant-skill:
-    image: ghcr.io/m4xr1sk/music-assistant-skill:latest
+    build: .
+    image: music-assistant-skill:local
     environment:
       - SKILL_HOSTNAME=alexa.[yourdomain]
       - STREAM_HOSTNAME=stream.[yourdomain]

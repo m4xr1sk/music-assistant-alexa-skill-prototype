@@ -13,7 +13,7 @@ Complete restructuring for security, isolation, and legacy dependency removal.
   - Removed exposure of `DEBUG_PORT`.
   - Configured `appuser` (non-root) for container execution.
 - **Production Readiness**: Replaced the Werkzeug development server with `gunicorn` for the public endpoint.
-- **CI/CD**: Updated GitHub Actions workflow (`docker-ghcr.yml`) to automatically build and push the image to GHCR on pushes to the `master` branch.
+- **CI/CD**: Prepared GitHub Actions workflow (`docker-ghcr.yml`) to automatically build and push the image to GHCR on pushes to the `master` branch (currently disabled). Updated `docker-compose.yml` to **build from local context** by default.
 
 ### Dual-Port Architecture
 - **Port 5150 (Public)**: Reserved exclusively for the Alexa skill endpoint (`POST /`). Full signature validation by Amazon is strictly required.
@@ -30,5 +30,6 @@ Complete restructuring for security, isolation, and legacy dependency removal.
   - Completely removed the **Simulator** (and its `X-Simulator-Bypass` signature bypass).
   - Removed **Swagger UI** interface (`/docs`).
   - Removed over 15 scripts and utilities related to ASK CLI and automated skill creation.
+  - Removed legacy **Home Assistant Add-on** configuration (`addons/`).
 - **User Interface**: Updated the status dashboard to remove references to deleted components.
-- **Documentation**: Created [SKILL_SETUP.md](file:///c:/Users/canta/__DATA/_tail/music-assistant-alexa-skill-prototype/SKILL_SETUP.md) to guide users through the manual skill creation process via the Alexa Developer Console.
+- **Documentation**: Created [SKILL_SETUP.md](SKILL_SETUP.md) to guide users through the manual skill creation process via the Alexa Developer Console.
