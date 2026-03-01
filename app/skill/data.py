@@ -70,8 +70,8 @@ def get_latest(api_hostname: Optional[str] = None,
     """
     global info, _last_version
 
-    port = os.environ.get('PORT')
-    api_hostname = f'127.0.0.1:{port}'
+    admin_port = os.environ.get('ADMIN_PORT', '5151')
+    api_hostname = f'127.0.0.1:{admin_port}'
     
     url = f"{scheme}://{api_hostname.rstrip('/')}{path if path.startswith('/') else '/' + path}"
     # Prepare Authorization header if credentials provided (params or env)
